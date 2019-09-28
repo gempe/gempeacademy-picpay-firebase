@@ -13,3 +13,16 @@ export const ON_CREATE_PAYMENTS_INDEXERS: functions.CloudFunction<functions.data
       return payments + 1;
     });
   });
+
+/**
+ * Function para subtrair a quantidade de pagamentos que deram errado
+ */
+export const ON_DELETE_PAYMENTS_INDEXERS: functions.CloudFunction<functions.database.DataSnapshot> = functions.database
+  .ref('payments/paymentsList/{paymentId}')
+  .onDelete(async (snapshot: functions.database.DataSnapshot) => {
+    const totalPayments: database.Reference = await snapshot.ref.root.child('payments/paymentsIndexers/totalPayments');
+
+    totalPayments.transaction(payments => {
+      return payments > 0 ? payments - 1 : 0;
+    });
+  });

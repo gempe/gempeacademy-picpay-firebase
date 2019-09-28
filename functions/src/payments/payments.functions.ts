@@ -26,3 +26,41 @@ export const ON_DELETE_PAYMENTS_INDEXERS: functions.CloudFunction<functions.data
       return payments > 0 ? payments - 1 : 0;
     });
   });
+
+/**
+ * Function para realizar a transferencia do saldo entre contas
+ */
+export const ON_CREATE_TRANSFER_BALANCE_BETWEEN_ACCOUNTS: functions.CloudFunction<
+  functions.database.DataSnapshot
+> = functions.database
+  .ref('payments/paymentsList/{paymentId}')
+  .onCreate(async (snapshot: functions.database.DataSnapshot, context: functions.EventContext) => {
+    const paymentId: string = context.params.paymentId;
+    const paymentData = await snapshot.val();
+
+    const balanceFromWhoPaid: database.Reference = await snapshot.ref.root.child(
+      `users/usersList/${paymentData.userWhoPaid.userId}/private/userCurrentBalanceInCents`
+    );
+
+    const balanceFromWhoReceived: database.Reference = await snapshot.ref.root.child(
+      `users/usersList/${paymentData.userWhoReceived.userId}/private/userCurrentBalanceInCents`
+    );
+
+    try {
+      await balanceFromWhoPaid.transaction(balanceWhoPaid => {
+        if (balanceWhoPaid < paymentData.paymentAmountInCents) {
+          throw new Error('O usuário que pagou não possui saldo suficiente. O pagamento será deletado');
+        }
+
+        return balanceWhoPaid - paymentData.paymentAmountInCents;
+      });
+
+      await balanceFromWhoReceived.transaction(balanceWhoReceived => {
+        return balanceWhoReceived + paymentData.paymentAmountInCents;
+      });
+    } catch (error) {
+      console.log(`Ocorreu um erro na transação. O pagamento ${paymentId} será deletado`);
+      console.log(error);
+      await snapshot.ref.root.child(`payments/paymentsList/${paymentId}`).remove();
+    }
+  });

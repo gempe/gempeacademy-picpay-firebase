@@ -9,7 +9,7 @@ export const ON_CREATE_USERS_INDEXERS: functions.CloudFunction<functions.databas
   .onCreate(async (snapshot: functions.database.DataSnapshot) => {
     const totalUsers: database.Reference = await snapshot.ref.root.child('users/usersIndexers/totalUsers');
 
-    totalUsers.transaction(users => {
+    await totalUsers.transaction(users => {
       return users + 1;
     });
   });
@@ -26,7 +26,7 @@ export const ON_CREATE_SET_USER_BALANCE: functions.CloudFunction<functions.datab
       `users/usersList/${userId}/private/userCurrentBalanceInCents`
     );
 
-    userBalanceInCents.transaction(balance => {
+    await userBalanceInCents.transaction(balance => {
       return balance + 100000000;
     });
   });

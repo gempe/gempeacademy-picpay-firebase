@@ -9,7 +9,7 @@ export const ON_CREATE_PAYMENTS_INDEXERS: functions.CloudFunction<functions.data
   .onCreate(async (snapshot: functions.database.DataSnapshot) => {
     const totalPayments: database.Reference = await snapshot.ref.root.child('payments/paymentsIndexers/totalPayments');
 
-    totalPayments.transaction(payments => {
+    await totalPayments.transaction(payments => {
       return payments + 1;
     });
   });
@@ -22,7 +22,7 @@ export const ON_DELETE_PAYMENTS_INDEXERS: functions.CloudFunction<functions.data
   .onDelete(async (snapshot: functions.database.DataSnapshot) => {
     const totalPayments: database.Reference = await snapshot.ref.root.child('payments/paymentsIndexers/totalPayments');
 
-    totalPayments.transaction(payments => {
+    await totalPayments.transaction(payments => {
       return payments > 0 ? payments - 1 : 0;
     });
   });

@@ -36,7 +36,8 @@ export const ON_CREATE_TRANSFER_BALANCE_BETWEEN_ACCOUNTS: functions.CloudFunctio
   .ref('payments/paymentsList/{paymentId}')
   .onCreate(async (snapshot: functions.database.DataSnapshot, context: functions.EventContext) => {
     const paymentId: string = context.params.paymentId;
-    const paymentData = await snapshot.val();
+    const  paymentData = snapshot.val();
+    const paymentValue = parseInt(paymentData.paymentAmountInCents);
 
     const balanceFromWhoPaid: database.Reference = await snapshot.ref.root.child(
       `users/usersList/${paymentData.userWhoPaid.userId}/private/userCurrentBalanceInCents`
@@ -47,17 +48,22 @@ export const ON_CREATE_TRANSFER_BALANCE_BETWEEN_ACCOUNTS: functions.CloudFunctio
     );
 
     try {
-      await balanceFromWhoPaid.transaction(balanceWhoPaid => {
-        if (balanceWhoPaid < paymentData.paymentAmountInCents) {
+      const paid = balanceFromWhoPaid.transaction((balanceWhoPaid: number) => {
+        console.log("balanceWhoPaid", balanceWhoPaid);
+        console.log("paymentValue", paymentValue);
+        
+        if (balanceWhoPaid < paymentValue) {
           throw new Error('O usuário que pagou não possui saldo suficiente. O pagamento será deletado');
         }
 
-        return balanceWhoPaid - paymentData.paymentAmountInCents;
+        return balanceWhoPaid - paymentValue;
       });
 
-      await balanceFromWhoReceived.transaction(balanceWhoReceived => {
-        return balanceWhoReceived + paymentData.paymentAmountInCents;
+      const received = balanceFromWhoReceived.transaction((balanceWhoReceived: number) => {
+        return balanceWhoReceived + paymentValue;
       });
+
+      await Promise.all([ paid, received ]);
     } catch (error) {
       console.log(`Ocorreu um erro na transação. O pagamento ${paymentId} será deletado`);
       console.log(error);

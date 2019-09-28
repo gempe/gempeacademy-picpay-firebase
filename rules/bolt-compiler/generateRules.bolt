@@ -35,6 +35,14 @@ type CashlessBalance extends Number {
   validate() { this == 0 }
 }
 
+type PaymentAmount extends Number {
+  validate() { this > 0 }
+}
+
+type Message extends String {
+  validate() { this.length > 1 &&  this.length <= 500 }
+}
+
 type URL extends String {
   validate() { this.test(/^(ht|f)tp(s?):\/\/[0-9a-zA-Z]([-.\\w]*[0-9a-zA-Z])*((0-9)*)*(\/?)([a-zA-Z0-9\-\.\?\,\'\/\\\+&=%\$#_]*)?$/) }
 }

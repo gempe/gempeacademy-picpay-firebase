@@ -1,7 +1,110 @@
 {
-  /* Visit https://firebase.google.com/docs/database/security to learn more about security rules. */
   "rules": {
-    ".read": false,
-    ".write": false
+    /****************************************************
+     * PAYMENTS
+     ****************************************************/
+    "payments": {
+      "paymentsList": {
+        ".read": "auth != null",
+        "$paymentId": {
+          ".write": "((data.val() == null && newData.val() != null) && (auth != null && auth.uid == newData.child('userWhoPaid').child('userId').val()))",
+          ".validate": "newData.hasChildren(['paymentAmountInCents', 'paymentCreatedAt', 'userWhoPaid', 'userWhoReceived'])",
+          "paymentAmountInCents": {
+            ".validate": "(newData.isNumber() && newData.val() > 0)"
+          },
+          "paymentCreatedAt": {
+            ".validate": "(newData.isNumber() && (data.val() == null && newData.val() != null))"
+          },
+          "paymentMessage": {
+            ".validate": "((newData.isString() && newData.val().length > 1) && newData.val().length <= 500)"
+          },
+          "userWhoPaid": {
+            ".validate": "newData.hasChildren(['userId', 'userName', 'userNickname', 'userPhotoUrl'])",
+            "userId": {
+              ".validate": "newData.isString()"
+            },
+            "userName": {
+              ".validate": "((newData.isString() && newData.val().length > 1) && newData.val().length <= 100)"
+            },
+            "userNickname": {
+              ".validate": "newData.isString()"
+            },
+            "userPhotoUrl": {
+              ".validate": "(newData.isString() && newData.val().matches(/^(ht|f)tp(s?):\\/\\/[0-9a-zA-Z]([-.\\\\w]*[0-9a-zA-Z])*((0-9)*)*(\\/?)([a-zA-Z0-9\\-\\.\\?\\,\\'\\/\\\\\\+&=%\\$#_]*)?$/))"
+            },
+            "$other": {
+              ".validate": "false"
+            }
+          },
+          "userWhoReceived": {
+            ".validate": "newData.hasChildren(['userId', 'userName', 'userNickname', 'userPhotoUrl'])",
+            "userId": {
+              ".validate": "newData.isString()"
+            },
+            "userName": {
+              ".validate": "((newData.isString() && newData.val().length > 1) && newData.val().length <= 100)"
+            },
+            "userNickname": {
+              ".validate": "newData.isString()"
+            },
+            "userPhotoUrl": {
+              ".validate": "(newData.isString() && newData.val().matches(/^(ht|f)tp(s?):\\/\\/[0-9a-zA-Z]([-.\\\\w]*[0-9a-zA-Z])*((0-9)*)*(\\/?)([a-zA-Z0-9\\-\\.\\?\\,\\'\\/\\\\\\+&=%\\$#_]*)?$/))"
+            },
+            "$other": {
+              ".validate": "false"
+            }
+          },
+          "$other": {
+            ".validate": "false"
+          }
+        }
+      }
+    },
+
+    /****************************************************
+     * USERS
+     ****************************************************/
+    "users": {
+      "usersList": {
+        ".read": "auth != null",
+        "$userId": {
+          ".write": "(auth != null && auth.uid == $userId)",
+          ".validate": "newData.hasChildren(['private', 'public'])",
+          "private": {
+            ".validate": "(newData.hasChildren(['userCurrentBalanceInCents']) && (data.val() == null && newData.val() != null))",
+            "userCurrentBalanceInCents": {
+              ".validate": "(newData.isNumber() && newData.val() == 0)"
+            },
+            "$other": {
+              ".validate": "false"
+            }
+          },
+          "public": {
+            ".validate": "newData.hasChildren(['userEmail', 'userName', 'userNickname', 'userPhotoUrl'])",
+            "userEmail": {
+              ".validate": "(newData.isString() && newData.val().matches(/^(([^<>()\\[\\]\\\\.,;:\\s@\"]+(\\.[^<>()\\[\\]\\\\.,;:\\s@\"]+)*)|(\".+\"))@((\\[[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}])|(([a-zA-Z\\-0-9]+\\.)+[a-zA-Z]{2,}))$/))"
+            },
+            "userName": {
+              ".validate": "((newData.isString() && newData.val().length > 1) && newData.val().length <= 100)"
+            },
+            "userNickname": {
+              ".validate": "newData.isString()"
+            },
+            "userPhotoUrl": {
+              ".validate": "(newData.isString() && newData.val().matches(/^(ht|f)tp(s?):\\/\\/[0-9a-zA-Z]([-.\\\\w]*[0-9a-zA-Z])*((0-9)*)*(\\/?)([a-zA-Z0-9\\-\\.\\?\\,\\'\\/\\\\\\+&=%\\$#_]*)?$/))"
+            },
+            "$other": {
+              ".validate": "false"
+            }
+          },
+          "userCreatedAt": {
+            ".validate": "(newData.isNumber() && (data.val() == null && newData.val() != null))"
+          },
+          "$other": {
+            ".validate": "false"
+          }
+        }
+      }
+    }
   }
 }

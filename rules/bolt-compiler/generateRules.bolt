@@ -1,0 +1,105 @@
+/***********************************************************************************
+ *                            HOW TO USE AND DOCUMENTATION                         *
+ ***********************************************************************************/
+
+// DOCS ==> https://github.com/firebase/bolt/blob/master/docs/language.md
+
+/**
+ * HOW TO COMPILE:
+ *   firebase-bolt < generateRules.bolt > rules-bolt.json
+ *   firebase-bolt generateRules.bolt
+ */
+
+/***********************************************************************************
+ *                                CUSTOM FUNCTIONS                                 *
+ ***********************************************************************************/
+isSignedIn() { auth != null }
+
+isCurrentUser(uid) { isSignedIn() && auth.uid == uid }
+
+createOnly(value) { prior(value) == null && value != null }
+
+/***********************************************************************************
+ *                                CUSTOM DATA TYPES                                *
+ ***********************************************************************************/
+
+type Name extends String {
+  validate() { this.length > 1 &&  this.length <= 100 }
+}
+
+type Email extends String {
+  validate() { this.test(/^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/) }
+}
+
+type CashlessBalance extends Number {
+  validate() { this == 0 }
+}
+
+type URL extends String {
+  validate() { this.test(/^(ht|f)tp(s?):\/\/[0-9a-zA-Z]([-.\\w]*[0-9a-zA-Z])*((0-9)*)*(\/?)([a-zA-Z0-9\-\.\?\,\'\/\\\+&=%\$#_]*)?$/) }
+}
+
+type CreatedAt extends Number {
+  validate() { createOnly(this) }
+}
+
+type UserDataInPayment {
+  userId: String,
+  userName: Name,
+  userNickname: String
+  userPhotoUrl: URL
+}
+
+/***********************************************************************************
+ *                                      PATHS                                      *
+ ***********************************************************************************/
+
+// PAYMENTS
+path /payments/paymentsList {
+  read() { isSignedIn() }
+}
+
+path /payments/paymentsList/{paymentId} is PaymentRoot {
+  write() { createOnly(this) && isCurrentUser(this.userWhoPaid.userId) }
+}
+
+type PaymentRoot {
+  paymentAmountInCents: PaymentAmount,
+  paymentCreatedAt: CreatedAt,
+  paymentMessage: Message | Null,
+  userWhoPaid: UserDataInPayment,
+  userWhoReceived: UserDataInPayment,
+}
+
+// USERS
+path /users/usersList {
+  read() { isSignedIn() }
+}
+
+path /users/usersList/{userId} is UserRoot {
+  write() { isCurrentUser(userId) }
+}
+
+type UserRoot {
+  private: Object,
+  public: Object,
+  userCreatedAt: CreatedAt | Null,
+}
+
+path /users/usersList/{userId}/private is UserPrivateData {
+  validate() { createOnly(this) }
+  read() { isCurrentUser(userId) }
+}
+
+type UserPrivateData {
+  userCurrentBalanceInCents: CashlessBalance
+}
+
+path /users/usersList/{userId}/public is UserPublicData { }
+
+type UserPublicData {
+  userEmail: Email,
+  userName: Name,
+  userNickname: String
+  userPhotoUrl: URL
+}
